@@ -88,7 +88,7 @@ theorem mem_of_mem (hX : X ∈ P.C) (hY : Y ∈ P.C) {a b : α}
 begin
   -- you might want to start with `have hXY : X = Y`
   -- and prove it from the previous lemma
-  sorry,
+  rwa eq_of_mem hX hY haX haY at hbX
 end
 
 /-- Every term of type `α` is in one of the blocks for a partition `P`. -/
@@ -96,7 +96,7 @@ theorem mem_block (a : α) : ∃ X : set α, X ∈ P.C ∧ a ∈ X :=
 begin
   -- an interesting way to start is
   -- `obtain ⟨X, hX, haX⟩ := P.Hcover a,`
-  sorry,
+  rcases P.Hcover a with ⟨w,H,h⟩, exact ⟨w,H,h⟩
 end
 
 end partition
@@ -152,7 +152,7 @@ begin
   -- You can extract the things with
   -- `rcases hR with ⟨hrefl, hsymm, htrans⟩,` or
   -- `obtain ⟨hrefl, hsymm, htrans⟩ := hR,`
-  sorry,
+  exact hR.1 a
 end
 
 lemma cl_sub_cl_of_mem_cl {a b : α} :
@@ -160,7 +160,7 @@ lemma cl_sub_cl_of_mem_cl {a b : α} :
   cl R a ⊆ cl R b :=
 begin
   -- remember `set.subset_def` says `X ⊆ Y ↔ ∀ a, a ∈ X → a ∈ Y
-  sorry,
+  intros ab c ca, exact hR.2.2 ca ab
 end
 
 lemma cl_eq_cl_of_mem_cl {a b : α} :
@@ -168,7 +168,9 @@ lemma cl_eq_cl_of_mem_cl {a b : α} :
   cl R a = cl R b :=
 begin
   -- remember `set.subset.antisymm` says `X ⊆ Y → Y ⊆ X → X = Y`
-  sorry
+  have hR' := @cl_sub_cl_of_mem_cl _ _ hR,
+  intro ab, apply set.subset.antisymm,
+  exact hR' ab, exact hR' (hR.2.1 ab)
 end
 
 end equivalence_classes -- section
@@ -205,20 +207,21 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
       cases R with R hR,
       -- If X is an equivalence class then X is nonempty.
       show ∀ (X : set α), (∃ (a : α), X = cl R a) → X.nonempty,
-      sorry,
+      rintros X ⟨a,h⟩, rw h, exact ⟨a, hR.1 a⟩
     end,
     Hcover := begin
       cases R with R hR,
       -- The equivalence classes cover α
       show ∀ (a : α), ∃ (X : set α) (H : ∃ (b : α), X = cl R b), a ∈ X,
-      sorry,
+      intro a, exact ⟨cl R a, ⟨a,rfl⟩, hR.1 a⟩
     end,
     Hdisjoint := begin
       cases R with R hR,
       -- If two equivalence classes overlap, they are equal.
       show ∀ (X Y : set α), (∃ (a : α), X = cl R a) →
         (∃ (b : α), Y = cl _ b) → (X ∩ Y).nonempty → X = Y,
-      sorry,
+      rintros X Y ⟨a,hX⟩ ⟨b,hY⟩ ⟨c,hc⟩, rw [hX,hY] at hc ⊢,
+      apply cl_eq_cl_of_mem_cl hR, exact hR.2.2 (hR.2.1 hc.1) hc.2
     end },
   -- Conversely, say P is an partition. 
   inv_fun := λ P, 
@@ -232,14 +235,16 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
     { -- It's reflexive
       show ∀ (a : α)
         (X : set α), X ∈ P.C → a ∈ X → a ∈ X,
-      sorry,
+      exact λ_ _ _, id
     },
     split,
     { -- it's symmetric
       show ∀ (a b : α),
         (∀ (X : set α), X ∈ P.C → a ∈ X → b ∈ X) →
          ∀ (X : set α), X ∈ P.C → b ∈ X → a ∈ X,
-      sorry,
+      intros a b ab X hX bX,
+      rcases P.Hcover a with ⟨Y,hY,aY⟩,
+      rwa P.Hdisjoint X Y hX hY ⟨b, bX, ab Y hY aY⟩
     },
     { -- it's transitive
       unfold transitive,
@@ -247,7 +252,7 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
         (∀ (X : set α), X ∈ P.C → a ∈ X → b ∈ X) →
         (∀ (X : set α), X ∈ P.C → b ∈ X → c ∈ X) →
          ∀ (X : set α), X ∈ P.C → a ∈ X → c ∈ X,
-      sorry,
+      intros a b c ab bc X h, exact (bc X h) ∘ (ab X h)
     }
   end⟩,
   -- If you start with the equivalence relation, and then make the partition
@@ -261,7 +266,8 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
     ext a b,
     -- so you have to prove an if and only if.
     show (∀ (c : α), a ∈ cl R c → b ∈ cl R c) ↔ R a b,
-    sorry,
+    split, intro h, exact hR.2.1 (h a (mem_cl_self hR a)),
+    intros h c ac, exact hR.2.2 (hR.2.1 h) ac
   end,
   -- Similarly, if you start with the partition, and then make the
   -- equivalence relation, and then construct the corresponding partition 
@@ -272,7 +278,21 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
     -- It suffices to prove that a subset X is in the original partition
     -- if and only if it's in the one made from the equivalence relation.
     ext X,
-    show (∃ (a : α), X = cl _ a) ↔ X ∈ P.C,
-    dsimp only,
-    sorry,
+    --show (∃ (a : α), X = cl _ a) ↔ X ∈ P.C,
+    --dsimp only,
+    generalize h : (λP:partition α, _) = inv_fun,
+    let s := (inv_fun P).2.2.1,
+    split,
+    { rintro ⟨a,hX⟩,
+      rcases P.Hcover a with ⟨Y,hY,aY⟩,
+      suffices : X = Y, rwa this,
+      ext b, split,
+      { rw hX, intro ba, have := s ba,
+        rw ← h at this, exact this Y hY aY},
+      { intro bY, rw [hX,←h], intros Z hZ bZ,
+        rwa P.Hdisjoint Z Y hZ hY ⟨b,bZ,bY⟩}},
+    { intro hX, cases P.Hnonempty X hX with a aX,
+      use a, ext b, split, rw ← h,
+      intros bX Y hY bY, rwa P.Hdisjoint Y X hY hX ⟨b,bY,bX⟩,
+      intro ba, have := s ba, rw ← h at this, exact this X hX aX}
   end }

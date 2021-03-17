@@ -23,7 +23,7 @@ end
 
 lemma subset_refl : X ⊆ X :=
 begin
-  sorry,
+  intro a, exact id
 end
 
 lemma subset_trans (hXY : X ⊆ Y) (hYZ : Y ⊆ Z) : X ⊆ Z :=
@@ -36,7 +36,7 @@ begin
   -- You can also think of it as an implication:
   -- "if a is in Ω, and if a ∈ Y, then a ∈ Z". Because it's an implication,
   -- you can `apply hYZ`. This is a really useful skill!
-  sorry
+  intro a, exact (@hYZ a) ∘ (@hXY a)
 end
 
 /-!
@@ -60,7 +60,7 @@ end
 lemma subset.antisymm (hXY : X ⊆ Y) (hYX : Y ⊆ X) : X = Y :=
 begin
   -- start with `ext a`,
-  sorry
+  ext a, exact ⟨@hXY a, @hYX a⟩
 end
 
 /-!
@@ -91,34 +91,38 @@ end
 
 lemma union_self : X ∪ X = X :=
 begin
-  sorry
+  ext a, split, {intro h, cases h, exacts [h,h]},
+  intro h, left, exact h
 end
 
 lemma subset_union_left : X ⊆ X ∪ Y :=
 begin
-  sorry
+  intro, exact or.inl
 end
 
 lemma subset_union_right : Y ⊆ X ∪ Y :=
 begin
-  sorry
+  exact λ_, or.inr
 end
 
 lemma union_subset_iff : X ∪ Y ⊆ Z ↔ X ⊆ Z ∧ Y ⊆ Z :=
 begin
-  sorry
+  split, intro h, split,
+  exact λ_ x, h(or.inl x),
+  exact λ_ y, h(or.inr y), 
+  exact λ⟨h1,h2⟩ a, or.rec (@h1 a) (@h2 a)
 end
 
 variable (W : set Ω)
 
 lemma union_subset_union (hWX : W ⊆ X) (hYZ : Y ⊆ Z) : W ∪ Y ⊆ X ∪ Z :=
 begin
-  sorry
+  exact λa, or.imp (@hWX a) (@hYZ a)
 end
 
 lemma union_subset_union_left (hXY : X ⊆ Y) : X ∪ Z ⊆ Y ∪ Z :=
 begin
-  sorry
+  exact λa, or.imp_left (@hXY a)
 end
 
 -- etc etc
@@ -127,24 +131,25 @@ end
 
 lemma inter_subset_left : X ∩ Y ⊆ X :=
 begin
-  sorry
+  exact λ_ h, h.1
 end
 
 -- don't forget `ext` to make progress with equalities of sets
 
 lemma inter_self : X ∩ X = X :=
 begin
-  sorry
+  ext a, split, intro h, exact h.1,
+  intro h, exact ⟨h,h⟩
 end
 
 lemma inter_comm : X ∩ Y = Y ∩ X :=
 begin
-  sorry
+  ext a, rw [inter_def, and.comm], refl
 end
 
 lemma inter_assoc : X ∩ (Y ∩ Z) = (X ∩ Y) ∩ Z :=
 begin
-  sorry
+  ext a, repeat {rw inter_def}, rw and.assoc
 end
 
 /-!
@@ -155,12 +160,15 @@ end
 
 lemma not_exists_iff_forall_not : ¬ (∃ a, a ∈ X) ↔ ∀ b, ¬ (b ∈ X) :=
 begin
-  sorry,
+  split, intros ne b bX, exact ne ⟨b,bX⟩,
+  rintros an ⟨a,aX⟩, exact an a aX
 end
 
 example : ¬ (∀ a, a ∈ X) ↔ ∃ b, ¬ (b ∈ X) :=
 begin
-  sorry,
+  split, intro na, by_contra nen,
+  apply na, intro a, by_contra aX, exact nen ⟨a,aX⟩,
+  rintro ⟨b,bX⟩, exact λh, bX (h b)
 end
 
 end xena

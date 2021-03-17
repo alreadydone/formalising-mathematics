@@ -255,7 +255,7 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
     --  `R a b` iff *every* block containing `a` also contains `b`.
     -- Because only one block contains a, this will work,
     -- and it turns out to be a nice way of thinking about it. 
-    ⟨λ a b, ∀ X ∈ P.C, a ∈ X → b ∈ X, begin
+    ⟨λ a b, ∀ X ∈ P.C, b ∈ X → a ∈ X, begin
       -- I claim this is an equivalence relation.
     split,
     { -- It's reflexive
@@ -267,21 +267,21 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
     split,
     { -- it's symmetric
       show ∀ (a b : α),
-        (∀ (X : set α), X ∈ P.C → a ∈ X → b ∈ X) →
-         ∀ (X : set α), X ∈ P.C → b ∈ X → a ∈ X,
-      intros a b h X hX hbX,
-      obtain ⟨Y, hY, haY⟩ := P.Hcover a,
-      specialize h Y hY haY,
-      exact mem_of_mem hY hX h hbX haY,
+        (∀ (X : set α), X ∈ P.C → b ∈ X → a ∈ X) →
+         ∀ (X : set α), X ∈ P.C → a ∈ X → b ∈ X,
+      intros a b h X hX haX,
+      obtain ⟨Y, hY, hbY⟩ := P.Hcover b,
+      specialize h Y hY hbY,
+      exact mem_of_mem hY hX h haX hbY,
     },
     { -- it's transitive
       unfold transitive,
       show ∀ (a b c : α),
-        (∀ (X : set α), X ∈ P.C → a ∈ X → b ∈ X) →
-        (∀ (X : set α), X ∈ P.C → b ∈ X → c ∈ X) →
-         ∀ (X : set α), X ∈ P.C → a ∈ X → c ∈ X,
-      intros a b c hbX hcX X hX haX,
-      apply hcX, assumption,
+        (∀ (X : set α), X ∈ P.C → b ∈ X → a ∈ X) →
+        (∀ (X : set α), X ∈ P.C → c ∈ X → b ∈ X) →
+         ∀ (X : set α), X ∈ P.C → c ∈ X → a ∈ X,
+      intros a b c haX hbX X hX hcX,
+      apply haX, assumption,
       apply hbX, assumption,
       assumption,
     }
@@ -291,23 +291,21 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
   left_inv := begin
     rintro ⟨R, hR⟩,
     -- Tidying up the mess...
-    suffices : (λ (a b : α), ∀ (c : α), a ∈ cl R c → b ∈ cl R c) = R,
+    suffices : (λ (a b : α), ∀ (c : α), b ∈ cl R c → a ∈ cl R c) = R,
       simpa,
     -- ... you have to prove two binary relations are equal.
     ext a b,
     -- so you have to prove an if and only if.
-    show (∀ (c : α), a ∈ cl R c → b ∈ cl R c) ↔ R a b,
+    show (∀ (c : α), b ∈ cl R c → a ∈ cl R c) ↔ R a b,
     split,
     { intros hab,
-      apply hR.2.1,
       apply hab,
       apply hR.1,
     },
-    { intros hab c hac,
+    { intros hab c hbc,
       apply hR.2.2,
-        apply hR.2.1,
-        exact hab,
-      exact hac,
+      exact hab,
+      exact hbc,
     }
   end,
   -- Similarly, if you start with the partition, and then make the
@@ -329,13 +327,10 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
       rw mem_cl_iff,
       split,
       { intro haY,
-      obtain ⟨Y, hY, hbY⟩ := P.Hcover b,
-      specialize haY Y hY hbY,
-      convert hbY,
-      exact eq_of_mem hX hY haX haY,
+      exact haY X hX haX,
       },
-      { intros hbX Y hY hbY,
-        apply mem_of_mem hX hY hbX hbY haX,
+      { intros hbX Y hY haY,
+        apply mem_of_mem hX hY haX haY hbX,
       }
     },
     { intro hX,
@@ -345,14 +340,12 @@ example (α : Type) : {R : α → α → Prop // equivalence R} ≃ partition α
       split,
       { intro hbX,
         rw mem_cl_iff,
-        intros Y hY hbY,
-        exact mem_of_mem hX hY hbX hbY ha,
+        intros Y hY haY,
+        exact mem_of_mem hX hY ha haY hbX,
       },
       { rw mem_cl_iff,
         intro haY,
-        obtain ⟨Y, hY, hbY⟩ := P.Hcover b,
-        specialize haY Y hY hbY,
-        exact mem_of_mem hY hX haY ha hbY,
+        exact haY X hX ha,
       }
     }
   end }
