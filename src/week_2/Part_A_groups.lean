@@ -90,12 +90,12 @@ to introduce the `calc` tactic.
 lemma mul_left_cancel (a b c : G) (Habac : a * b = a * c) : b = c := 
 begin
  calc b = 1 * b         : by rw one_mul
-    ... = (a⁻¹ * a) * b : by sorry -- replace `sorry` with `rw X` as appropriate
-    ... = a⁻¹ * (a * b) : by sorry
-    ... = a⁻¹ * (a * c) : by sorry
-    ... = (a⁻¹ * a) * c : by sorry
-    ... = 1 * c         : by sorry
-    ... = c             : by sorry
+    ... = (a⁻¹ * a) * b : by rw mul_left_inv -- replace `sorry` with `rw X` as appropriate
+    ... = a⁻¹ * (a * b) : by rw mul_assoc
+    ... = a⁻¹ * (a * c) : by rw Habac
+    ... = (a⁻¹ * a) * c : by rw mul_assoc
+    ... = 1 * c         : by rw mul_left_inv
+    ... = c             : by rw one_mul
 end
 
 /-
@@ -112,7 +112,7 @@ called `a`, but you had better give it `a⁻¹` instead.
 lemma mul_eq_of_eq_inv_mul {a x y : G} (h : x = a⁻¹ * y) : a * x = y :=
 begin
   apply mul_left_cancel a⁻¹, 
-  sorry
+  rwa [← mul_assoc, mul_left_inv, one_mul]
 end
 
 -- It's a bore to keep introducing variable names.
@@ -128,12 +128,12 @@ in the theorems below.
 
 @[simp] theorem mul_one : a * 1 = a :=
 begin
-  sorry
+  apply mul_eq_of_eq_inv_mul, rw mul_left_inv
 end
 
 @[simp] theorem mul_right_inv : a * a⁻¹ = 1 :=
 begin
-  sorry
+  apply mul_eq_of_eq_inv_mul, rw mul_one
 end
 
 -- Now let's talk about what that `@[simp]` means.
@@ -219,22 +219,25 @@ end
 
 @[simp] lemma mul_inv_cancel_left : a * (a⁻¹ * b) = b :=
 begin
-  sorry
+  rw ← mul_assoc, simp
 end
 
 @[simp] lemma inv_mul : (a * b)⁻¹ = b⁻¹ * a⁻¹ :=
 begin
-  sorry
+  apply mul_left_cancel (a*b),
+  rw mul_right_inv, simp
 end
 
 @[simp] lemma one_inv : (1 : G)⁻¹ = 1 :=
 begin
-  sorry
+  apply mul_left_cancel (1:G),
+  rw [mul_right_inv, one_mul]
 end
 
 @[simp] lemma inv_inv : a ⁻¹ ⁻¹ = a :=
 begin
-  sorry
+  apply mul_left_cancel a⁻¹,
+  rw [mul_left_inv, mul_right_inv]
 end
 
 /-
@@ -278,42 +281,46 @@ is one.
 
 lemma eq_mul_inv_of_mul_eq {a b c : G} (h : a * c = b) : a = b * c⁻¹ :=
 begin
-  sorry
+  rw [← mul_one a, ← mul_right_inv c, ← h], simp
 end
 
 lemma eq_inv_mul_of_mul_eq {a b c : G} (h : b * a = c) : a = b⁻¹ * c :=
 begin
-  sorry
+  apply mul_left_cancel b, simpa
 end
 
 lemma mul_left_eq_self {a b : G} : a * b = b ↔ a = 1 :=
 begin
-  sorry
+  split,
+  have := @eq_mul_inv_of_mul_eq G _ a b b, rwa ← mul_right_inv,
+  intro h, rw h, apply one_mul
 end
 
 lemma mul_right_eq_self {a b : G} : a * b = a ↔ b = 1 :=
 begin
-  sorry
+  split,
+  have := @eq_inv_mul_of_mul_eq G _ b a a, rwa ← mul_left_inv,
+  intro h, rw h, apply mul_one
 end
 
 lemma eq_inv_of_mul_eq_one {a b : G} (h : a * b = 1) : a = b⁻¹ :=
 begin
-  sorry
+  rw ← one_mul b⁻¹, exact eq_mul_inv_of_mul_eq h
 end
 
 lemma inv_eq_of_mul_eq_one {a b : G} (h : a * b = 1) : a⁻¹ = b :=
 begin
-  sorry,
+  rw [← mul_one a⁻¹], rw eq_inv_mul_of_mul_eq h
 end
 
 lemma unique_left_id {e : G} (h : ∀ x : G, e * x = x) : e = 1 :=
 begin
-  sorry
+  exact mul_left_eq_self.1 (h e)
 end
 
 lemma unique_right_inv {a b : G} (h : a * b = 1) : b = a⁻¹ :=
 begin
-  sorry
+  rw inv_eq_of_mul_eq_one h
 end
 
 lemma mul_left_cancel_iff (a x y : G) : a * x = a * y ↔ x = y :=
@@ -327,19 +334,25 @@ end
 -- You don't even need to go into tactic mode (begin/end) to use `calc`:
 lemma mul_right_cancel (a x y : G) (Habac : x * a = y * a) : x = y := 
 calc x = x * 1 : by rw mul_one
-  -- missing arguments here
-  ... = y : by sorry
+   ... = x * (a * a⁻¹) : by rw mul_right_inv
+   ... = (x * a) * a⁻¹ : by rw mul_assoc
+   ... = (y * a) * a⁻¹ : by rw Habac
+   ... = y * (a * a⁻¹) : by rw mul_assoc
+   ... = y * 1 : by rw mul_right_inv
+   ... = y : by rw mul_one
 
 -- `↔` lemmas are good simp lemmas too.
 @[simp] theorem inv_inj_iff {a b : G}: a⁻¹ = b⁻¹ ↔ a = b :=
 begin
-  sorry
+  split, intro h, rw [←inv_inv a, h, inv_inv],
+  intro h, rw h
+  --rw ← mul_left_cancel_iff a, split,
 end   
 
 theorem inv_eq {a b : G}: a⁻¹ = b ↔ b⁻¹ = a :=
 begin
-  sorry
-end  
+  split, repeat {intro h, rw [←h, inv_inv]}
+end
 
 end group
 
