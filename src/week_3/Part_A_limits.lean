@@ -471,19 +471,21 @@ looking at what happens when we change a sequence or limit by adding a constant.
 lemma is_limit_add_const {a : ℕ → ℝ} {l : ℝ} (c : ℝ) (ha : is_limit a l) :
   is_limit (λ i, a i + c) (l + c) :=
 begin
-  sorry
+  intros ε hε, cases ha ε hε with N h, use N, intros n hn,
+  convert h n hn using 1, ring, ring -- or dsimp, ring
 end
 
 lemma is_limit_add_const_iff {a : ℕ → ℝ} {l : ℝ} (c : ℝ) :
   is_limit a l ↔ is_limit (λ i, a i + c) (l + c) :=
 begin
-  sorry,
+  split, apply is_limit_add_const,
+  intro h, convert is_limit_add_const (-c) h; ring, ring
 end
 
 lemma is_limit_iff_is_limit_sub_eq_zero (a : ℕ → ℝ) (l : ℝ) :
   is_limit a l ↔ is_limit (λ i, a i - l) 0 :=
 begin
-  sorry,
+  convert is_limit_add_const_iff (-l); ring
 end
 
 /-
@@ -505,7 +507,15 @@ theorem is_limit_add {a b : ℕ → ℝ} {l m : ℝ}
   (h1 : is_limit a l) (h2 : is_limit b m) :
   is_limit (a + b) (l + m) :=
 begin
-  sorry,
+  intros ε hε, have hε2 : ε/2 > 0 := by linarith,
+  cases h1 (ε/2) hε2 with N1 hN1, cases h2 (ε/2) hε2 with N2 hN2,
+  use max N1 N2, intros n hn,
+  specialize hN1 n _, specialize hN2 n _, rw pi.add_apply,
+  exact calc |a n + b n - (l + m)| = |(a n - l) + (b n - m)| : by ring
+                               ... ≤ |a n - l| + |b n - m| : by apply abs_add
+                               ... < ε/2 + ε/2 : by linarith
+                               ... = ε : by linarith,
+  linarith [le_max_right N1 N2], linarith [le_max_left N1 N2]
 end
 
 -- We have proved `is_limit` behaves well under `+`. If we also
@@ -528,7 +538,10 @@ end
 lemma is_limit_mul_const_left {a : ℕ → ℝ} {l c : ℝ} (h : is_limit a l) :
   is_limit (λ n, c * (a n)) (c * l) :=
 begin
-  sorry,
+  by_cases hc : c = 0, rw hc, convert is_limit_const 0; ring,
+  intros ε hε, cases h (ε/|c|) (div_pos hε (abs_pos.2 hc)) with N hN, use N,
+  intros n hn, convert (lt_div_iff (abs_pos.2 hc)).1 (hN n hn),
+  convert abs_mul _ _, ring, ring
 end
 
 -- This should just be a couple of lines now.
@@ -536,7 +549,9 @@ lemma is_limit_linear (a : ℕ → ℝ) (b : ℕ → ℝ) (α β c d : ℝ)
     (ha : is_limit a α) (hb : is_limit b β) : 
     is_limit ( λ n, c * (a n) + d * (b n) ) (c * α + d * β) :=
 begin
-  sorry,
+  apply is_limit_add;
+    apply is_limit_mul_const_left,
+  exacts [ha,hb]
 end
 
 
@@ -548,7 +563,11 @@ end
 lemma is_limit_mul_eq_zero_of_is_limit_eq_zero {a : ℕ → ℝ} {b : ℕ → ℝ}
   (ha : is_limit a 0) (hb : is_limit b 0) : is_limit (a * b) 0 :=
 begin
-  sorry,
+  intros ε hε, cases ha ε hε with N1 hN1, cases hb 1 (by norm_num) with N2 hN2,
+  use max N1 N2, intros n hn,
+  convert mul_lt_mul' (le_of_lt (hN1 n _)) (hN2 n _) _ hε,
+  simp [abs_mul], ring,
+  linarith [le_max_left N1 N2], linarith[le_max_right N1 N2], apply abs_nonneg
 end
 
 -- The limit of the product is the product of the limits.
@@ -561,7 +580,10 @@ theorem is_limit_mul (a : ℕ → ℝ) (b : ℕ → ℝ) (l m : ℝ)
   (h1 : is_limit a l) (h2 : is_limit b m) :
   is_limit (a * b) (l * m) :=
 begin
-  sorry,
+  have h := h1, rw is_limit_iff_is_limit_sub_eq_zero at h1 h2,
+  convert is_limit_add (is_limit_mul_eq_zero_of_is_limit_eq_zero h1 h2)
+    (is_limit_linear _ _ _ _ l m h2 h),
+  funext, simp, ring, ring
 end
 
 
@@ -570,7 +592,13 @@ theorem is_limit_le_of_le (a : ℕ → ℝ) (b : ℕ → ℝ)
   (l : ℝ) (m : ℝ) (hl : is_limit a l) (hm : is_limit b m) 
   (hle : ∀ n, a n ≤ b n) : l ≤ m :=
 begin
-  sorry,
+  by_contra, have hε : (l-m)/2 > 0 := by linarith,
+  cases hl ((l-m)/2) hε with N1 hN1,
+  cases hm ((l-m)/2) hε with N2 hN2,
+  let N := max N1 N2,
+  specialize hN1 N (le_max_left N1 N2),
+  specialize hN2 N (le_max_right N1 N2),
+  rw abs_lt at hN1 hN2, linarith [hle N]
 end
 
 -- sandwich
@@ -578,10 +606,18 @@ theorem sandwich (a b c : ℕ → ℝ)
   (l : ℝ) (ha : is_limit a l) (hc : is_limit c l) 
   (hab : ∀ n, a n ≤ b n) (hbc : ∀ n, b n ≤ c n) : is_limit b l :=
 begin
-  sorry,
+  intros ε hε, cases ha ε hε with N1 hN1, cases hc ε hε with N2 hN2,
+  use max N1 N2, intros n hn, specialize hN1 n _, specialize hN2 n _,
+  rw abs_lt at hN1 hN2 ⊢, split; linarith [hab n, hbc n],
+  linarith [le_max_right N1 N2], linarith [le_max_left N1 N2]
 end
 
 
+lemma is_limit_abs_zero {a : ℕ → ℝ} (ha : is_limit a 0) : is_limit (λn,|a n|) 0 :=
+begin
+  intros ε hε, cases ha ε hε with N hN, use N,
+  intros n hn, convert hN n hn using 1, simp
+end
 
 -- Let's make a new definition.
 definition is_bounded (a : ℕ → ℝ) := ∃ B, ∀ n, |a n| ≤ B
@@ -591,7 +627,16 @@ lemma tendsto_bounded_mul_zero {a : ℕ → ℝ} {b : ℕ → ℝ}
   (hA : is_bounded a) (hB : is_limit b 0) 
   : is_limit (a*b) 0 :=
 begin
-  sorry,
+  cases hA with A hA,
+  have := @is_limit_mul_const_left _ _ A hB, rw mul_zero at this,
+  have habs := is_limit_abs_zero this,
+  have hn := @is_limit_mul_const_left _ _ (-1) habs, rw mul_zero at hn,
+  have : ∀n r, |(a n) * r| ≤ |A * r|,
+  { intros n r, rw [abs_mul, abs_mul], apply mul_le_mul_of_nonneg_right,
+    exacts [le_trans (hA n) (le_abs_self A), abs_nonneg r] },
+  apply sandwich _ _ _ _ hn habs;
+    intro n; specialize this n (b n); simp; rw abs_le at this,
+  exacts [this.1, this.2]
 end
 
 -- we can make more definitions
