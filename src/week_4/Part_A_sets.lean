@@ -198,15 +198,31 @@ end
 
 lemma image_comp (S : set X) : (g ∘ f) '' S = g '' (f '' S) :=
 begin
-  sorry
+  ext z, split,
+  { intro h, rcases h with ⟨x,hx,hc⟩,
+    use f x, split, use x, exact ⟨hx,rfl⟩, exact hc },
+  { intro h, rcases h with ⟨y,⟨x,hx,hf⟩,hg⟩,
+    use x, rw ← hf at hg, exact ⟨hx,hg⟩ }
 end
 
 open function
 
+lemma mem_of_im_mem_im {x : X} {h : injective f} : f x ∈ f '' S → x ∈ S :=
+  λ⟨y,_,he⟩, by rwa ← h he
+
 -- don't forget you can use `dsimp` to tidy up evaluated lambdas
 lemma image_injective : injective f → injective (λ S, f '' S) :=
 begin
-  sorry
+  intros hi S T he, dsimp at he, ext, split;
+  { intro h,
+    apply mem_of_im_mem_im,
+    exact hi,
+    rw ← he <|> rw he,
+    exact ⟨x,h,rfl⟩ }
+  /-{ intro h, have : f x ∈ f '' T, rw ← he, use x, exact ⟨h,rfl⟩,
+    rcases this with ⟨y,_,heq⟩, rwa ← hi heq },
+  { intro h, have : f x ∈ f '' S, rw he, use x, exact ⟨h,rfl⟩,
+    rcases this with ⟨y,_,heq⟩, rwa ← hi heq }-/
 end
 
 /-!
@@ -223,29 +239,37 @@ but in fact both sides are equal by definition.
 
 example (S : set X) : S = id ⁻¹' S :=
 begin
-  sorry
+  ext, exact ⟨id,id⟩
 end
 
 -- Do take a look at the model solutions to this one (which I'll upload 
 -- after the workshop )
 example (T : set Z) : (g ∘ f) ⁻¹' T = f ⁻¹' (g ⁻¹' T) :=
 begin
-  sorry
+  ext, apply iff.refl -- same as ⟨id,id⟩
 end
 
 lemma preimage_injective (hf : surjective f) : injective (λ T, f ⁻¹' T) :=
 begin
-  sorry
+  intros S T he, dsimp at he, ext y, split;
+  { cases hf y with x hx,
+    rw [←hx, ←mem_preimage],
+    rw he <|> rw ← he,
+    exact id }
 end
 
 lemma image_surjective (hf : surjective f) : surjective (λ S, f '' S) :=
 begin
-  sorry
+  intro T, use f⁻¹' T, ext y, split,
+    rintro ⟨x,hx,he⟩, rwa ← he,
+    intro h, rcases hf y with ⟨x,he⟩, rw ← he at h, exact ⟨x,h,he⟩
 end
 
 lemma preimage_surjective (hf : injective f) : surjective (λ S, f ⁻¹' S) :=
 begin
-  sorry
+  intro S, use f '' S, dsimp, ext, split,
+    rintro ⟨z,hz,he⟩, rwa ← hf he,
+    intro h, exact ⟨x,h,rfl⟩
 end
 
 /-!
@@ -270,7 +294,10 @@ variables (ι : Type) (F : ι → set X) (x : X)
 lemma image_Union (F : ι → set X) (f : X → Y) :
   f '' (⋃ (i : ι), F i) = ⋃ (i : ι), f '' (F i) :=
 begin
-  sorry
+  ext y, rw [mem_image, mem_Union], split,
+    { rintro ⟨x,hx,he⟩, rw mem_Union at hx,
+      cases hx with i hx, exact ⟨i,x,hx,he⟩ },
+    rintro ⟨i,x,hx,he⟩, use x, rw mem_Union, exact ⟨⟨i,hx⟩,he⟩
 end
 
 /-!
@@ -291,5 +318,7 @@ The lemma for elements of a bounded union is:
 lemma preimage_bUnion (F : ι → set Y) (Z : set ι) :
   f ⁻¹' (⋃ (i ∈ Z), F i) = ⋃ (i ∈ Z), f ⁻¹' (F i) :=
 begin
-  sorry
+  ext,
+  rw [mem_preimage, mem_bUnion_iff, mem_bUnion_iff],
+  exact ⟨id,id⟩
 end

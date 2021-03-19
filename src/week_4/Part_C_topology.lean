@@ -152,12 +152,16 @@ begin
   -- start by changing `is_compact` to something we can work with.
   rw compact_iff_finite_subcover' at hS ⊢,
   -- Define `T` to be `f '' S` -- why not?
-  set T := f '' S with hT_def,
+  --set T := f '' S with hT_def,
   -- Now `T = f '' S` and `hT_def` tells us that.
   -- Note that `set T := ...` is about the *tactic* `set`.
 
   -- OK let's go.
-  sorry
+  intros ι U ho hc, rcases hS (λi, f⁻¹'(U i)) _ _ with ⟨t,ht,hcf⟩,
+  { use t, split, exact ht, rintros y ⟨x,hx,he⟩, rw ← he,
+    specialize hcf hx, rwa mem_bUnion_iff at hcf ⊢ },
+  intro i, exact continuous.is_open_preimage hf _ (ho i),
+  rwa [←preimage_Union, ←image_subset_iff]
 end
 
 /-
@@ -185,6 +189,19 @@ injectivity.
 lemma closed_of_compact (S : set X) (hS : is_compact S)
   (C : set X) (hC : is_closed C) : is_compact (S ∩ C) :=
 begin
-  sorry,
+  rw compact_iff_finite_subcover' at hS ⊢,
+  intros ι U ho hc,
+  rcases hS (λi, option.rec Cᶜ U i) _ _ with ⟨t,ht,hcf⟩,
+  { use function.embedding.some⁻¹' t, split,
+    exact finite.preimage_embedding _ ht,
+    intros x hx, specialize hcf hx.1,
+    rw mem_bUnion_iff at hcf ⊢,
+    rcases hcf with ⟨_|i,hi,h⟩, exact (h hx.2).elim, -- contradiction
+    exact ⟨i,hi,h⟩ },
+  { rintro ⟨_|i⟩, exacts [hC, ho i] },
+  { intros x hx, rw mem_Union,
+    by_cases h : x ∈ C, specialize hc ⟨hx,h⟩,
+    rw mem_Union at hc, cases hc with i hi,
+    exacts [⟨some i, hi⟩, ⟨none, h⟩] }
 end
 
