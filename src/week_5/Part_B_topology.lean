@@ -36,13 +36,15 @@ open set
 example (a : α): filter α :=
 { sets := {X : set α | a ∈ interior X},
   univ_sets := begin
-    sorry,
+    dsimp, rw interior_univ, triv
   end,
   sets_of_superset := begin
-    sorry,
+    intros S T hS hc, exact interior_mono hc hS
+    /-rintros S T ⟨G,⟨ho,hc1⟩,ha⟩ hc2,
+    exact ⟨G,⟨ho,subset.trans hc1 hc2⟩,ha⟩-/
   end,
   inter_sets := begin
-    sorry,
+    dsimp, intros S T hS hT, rw interior_inter, exact ⟨hS,hT⟩
   end }
 
 /-
@@ -81,7 +83,13 @@ involving `⊓`.
 example {x : α} {F G : filter α} (hxF : cluster_pt x F) (hFG : F ≤ G) :
   cluster_pt x G :=
 begin
-  sorry,
+  intro h, apply hxF, apply le_bot_iff.1,
+  rw ← h, exact inf_le_inf_left _ hFG
+  /-intro h, have := inf_le_inf_left _ hFG,
+  revert this, rwa [h, le_bot_iff]-/
+  /-rw cluster_pt_iff at hxF ⊢,
+  intros U hU V hV,
+  exact hxF hU (hFG hV)-/
 end
 
 /-
@@ -137,7 +145,13 @@ begin
   -- Let's tell the type class inference system about `hnf : f.ne_bot`
   haveI := hnF,
   -- see if you can take it from here.
-  sorry,
+  rcases @hS F _ _ with ⟨a,ha,hc⟩, use a,
+  have : cluster_pt a (𝓟 C),
+    apply cluster_pt.mono hc, apply le_trans hFSC,
+    apply principal_mono.2, exact λ_ h, h.2,
+  exact ⟨⟨ha,
+    by rwa [←is_closed.closure_eq hC, mem_closure_iff_cluster_pt]⟩, hc⟩,
+  apply le_trans hFSC, apply principal_mono.2, exact λ_ h, h.1
 end
 
 
