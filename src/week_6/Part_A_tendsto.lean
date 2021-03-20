@@ -147,7 +147,8 @@ open set
 
 example (S : set X) (T : set Y) : f '' S ⊆ T ↔ S ⊆ f⁻¹' T :=
 begin
-  sorry,
+  split, intros h x hx, exact h ⟨x,hx,rfl⟩,
+         rintros h _ ⟨x,hx,rfl⟩, exact h hx
 end
 
 /-
@@ -180,13 +181,16 @@ open filter
 example (F : filter X) : filter Y :=
 { sets := {T : set Y | f ⁻¹' T ∈ F },
   univ_sets := begin
-    sorry
+    exact univ_mem_sets
   end,
   sets_of_superset := begin
-    sorry,
+    intros S T hS hc,
+    exact mem_sets_of_superset hS (preimage_mono hc)
   end,
   inter_sets := begin
-    sorry
+    intros _ _, dsimp,
+    rw ← preimage_inter,
+    exact inter_mem_sets
   end, }
 
 -- this is `filter.mem_map` and it's true by definition.
@@ -207,7 +211,7 @@ end
 -- this is `filter.map_id` but see if you can prove it yourself.
 example (F : filter X) : F.map id = F :=
 begin
-  sorry
+  ext, refl
 end
 
 -- pushing along g ∘ f is the same as pushing along f and then g
@@ -219,7 +223,7 @@ variables (Z : Type) (g : Y → Z)
 -- way around. See if you can prove it yourself.
 example (F : filter X) : F.map (g ∘ f) = (F.map f).map g :=
 begin
-  sorry,
+  refl
 end
 
 open_locale filter -- for 𝓟 notation
@@ -228,7 +232,7 @@ open_locale filter -- for 𝓟 notation
 -- this is `filter.map_principal` but see if you can prove it yourself.
 example (S : set X) : (𝓟 S).map f = 𝓟 (f '' S) :=
 begin
-  sorry,
+  ext, exact iff.symm image_subset_iff
 end
 
 /-
@@ -261,7 +265,7 @@ end
 -- this is `tendsto_id` but see if you can prove it yourself.
 example (F : filter X) : tendsto id F F :=
 begin
-  sorry,
+  exact λ_, id
 end
 
 -- this is `tendsto.comp` but see if you can prove it yourself
@@ -269,7 +273,7 @@ example (F : filter X) (G : filter Y) (H : filter Z)
   (f : X → Y) (g : Y → Z)
   (hf : tendsto f F G) (hg : tendsto g G H) : tendsto (g ∘ f) F H :=
 begin
-  sorry,
+  intros S hS, exact hf (hg hS)
 end
 
 -- I would recommend looking at the model answer to this one if
@@ -277,7 +281,7 @@ end
 lemma tendsto_comp_map (g : Y → Z) (F : filter X) (G : filter Z) :
   tendsto (g ∘ f) F G ↔ tendsto g (F.map f) G :=
 begin
-  sorry,
+  refl -- so simple!
 end
 
 /-
@@ -290,7 +294,8 @@ Say `f : X → Y` and `G : filter Y`, and we want a filter on `X`. Let's make a
 naive definition. We want a collection of subsets of `X` corresponding to the
 filter obtained by pulling back `G` along `f`. When should `S : set X` be
 in this filter? Perhaps it is when `f '' S ∈ G`. However, there is no reason
-that the collection of `S` satisfying this property should be a filter
+that the collectio
+n of `S` satisfying this property should be a filter
 on `X`. For example, there is no reason to espect that `f '' univ ∈ G`
 if `f` is not surjective. Our naive guess doesn't work.
 
@@ -313,13 +318,15 @@ guess the names of the lemmas):
 example (G : filter Y) : filter X :=
 { sets := {S : set X | ∃ T ∈ G, f ⁻¹' T ⊆ S},
   univ_sets := begin
-    sorry
+    exact ⟨univ, univ_mem_sets, by refl /-subset.refl _-/⟩
   end,
   sets_of_superset := begin
-    sorry
+    rintros S1 S2 ⟨T,hT,hS1⟩ hc, exact ⟨T, hT, subset.trans hS1 hc⟩
   end,
   inter_sets := begin
-    sorry
+    rintros S1 S2 ⟨T1,hT1,hS1⟩ ⟨T2,hT2,hS2⟩,
+    use T1 ∩ T2, rw preimage_inter,
+    exact ⟨inter_mem_sets hT1 hT2, inter_subset_inter hS1 hS2⟩
   end }
 
 -- Let's call this mem_comap
@@ -335,19 +342,27 @@ end
 -- this is comap_id
 example (G : filter Y) : comap id G = G :=
 begin
-  sorry
+  ext S, split,
+    rintro ⟨T,hT,hS⟩, exact mem_sets_of_superset hT hS,
+    intro h, exact ⟨S, h, by refl⟩           
 end
 
 -- this is comap_comap but the other way around
 lemma comap_comp (H : filter Z) : comap (g ∘ f) H = comap f (comap g H) :=
 begin
-  sorry
+  ext S, split,
+    rintro ⟨T,hT,hS⟩, exact ⟨g⁻¹'T, ⟨T, hT, by refl⟩, hS⟩,
+    rintro ⟨T,⟨R,hR,hT⟩,hS⟩,
+    refine ⟨R, hR, subset.trans _ hS⟩,
+    exact preimage_mono hT -- can't insert this directly into _ !
 end
 
 -- this is comap_principal. Remember `mem_principal_sets`! It's true by definition...
 example (T : set Y) : comap f (𝓟 T) = 𝓟 (f ⁻¹' T) :=
 begin
-  sorry
+  ext S, split,
+    rintro ⟨R,hR,hS⟩, apply subset.trans (preimage_mono hR) hS,
+    intro h, exact ⟨T, λ_,id, h⟩
 end
 
 
@@ -359,7 +374,8 @@ end
 lemma filter.galois_connection (F : filter X) (G : filter Y) : 
   map f F ≤ G ↔ F ≤ comap f G :=
 begin
-  sorry,
+  split, rintros h S ⟨T,hT,hS⟩, exact mem_sets_of_superset (h hT) hS,
+         intros h S hS, exact h ⟨S, hS, by refl⟩
 end
 
 -- indeed, `map f` and `comap f` form a Galois connection.

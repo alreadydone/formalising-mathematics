@@ -280,7 +280,7 @@ from Part A.
 -- facts from Part A.
 example (x : X) : continuous_at id x :=
 begin
-  sorry
+  exact λ_,id
 end
 
 -- recall we have `f : X → Y`. Now let's add in a `Z`.
@@ -291,7 +291,7 @@ variables (Z : Type) [topological_space Z] (g : Y → Z)
 example (x : X) (hf : continuous_at f x) (hg : continuous_at g (f x)) :
 continuous_at (g ∘ f) x :=
 begin
-  sorry
+  intros _ h, exact hf (hg h)
 end
 
 /-
@@ -332,7 +332,10 @@ example {α : Type} (f : α → Y) (g : α → Z) (x : X) (F : filter α) (y : Y
   (hf : tendsto f F (𝓝 y)) (hg : tendsto g F (𝓝 z)) :
   tendsto (λ x, (f x, g x)) F (𝓝 (y, z)) :=
 begin
-  sorry,
+  intro W, rw mem_nhds_prod_iff, rintro ⟨U,hU,V,hV,hc⟩,
+  have := F.4 /-inter_sets-/ (hf hU) (hg hV),
+  rw ← set.mk_preimage_prod at this,
+  exact F.3 /-sets_of_superset-/ this (set.preimage_mono hc)
 end
 
 /- Armed with `tendsto.prod_mk_nhds`, let's prove the version of `tendsto.mul`
@@ -353,7 +356,7 @@ lemma key_lemma {α M : Type} [topological_space M] [has_mul M]
   (hcontinuous : continuous_at (λ (mn : M × M), mn.1 * mn.2) (a,b)) :
   tendsto (f * g) F (𝓝 (a * b)) :=
 begin
-  sorry
+  convert tendsto.comp hcontinuous (tendsto.prod_mk_nhds hf hg) -- super simple :)
 end
 
 -- The final ingredient is that multiplication is continuous on ℝ, which we

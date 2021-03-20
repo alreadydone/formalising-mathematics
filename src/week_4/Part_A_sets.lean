@@ -239,14 +239,14 @@ but in fact both sides are equal by definition.
 
 example (S : set X) : S = id ⁻¹' S :=
 begin
-  ext, exact ⟨id,id⟩
+  ext, refl -- or exact ⟨id,id⟩, or apply iff.refl
 end
 
 -- Do take a look at the model solutions to this one (which I'll upload 
 -- after the workshop )
 example (T : set Z) : (g ∘ f) ⁻¹' T = f ⁻¹' (g ⁻¹' T) :=
 begin
-  ext, apply iff.refl -- same as ⟨id,id⟩
+  ext, refl
 end
 
 lemma preimage_injective (hf : surjective f) : injective (λ T, f ⁻¹' T) :=
@@ -320,5 +320,5 @@ lemma preimage_bUnion (F : ι → set Y) (Z : set ι) :
 begin
   ext,
   rw [mem_preimage, mem_bUnion_iff, mem_bUnion_iff],
-  exact ⟨id,id⟩
+  refl
 end
