@@ -44,7 +44,7 @@ classical.some (hu.2 T f h)
 Now `g_univ` is also a definition, so we need to make an API for this too!
 
 The proof that `g := g_univ hu h : Q → T` satisfies `f = g ∘ p` needs
-a convenient name -- let's call it called `g_univ_spec hu h`
+a convenient name -- let's call it `g_univ_spec hu h`
 
 -/
 lemma g_univ_spec (hu : is_universal Q p)
@@ -125,7 +125,7 @@ lemma useful {X : Type} [s : setoid X] {Q : Type}
   {p : X → Q} (h1 : is_universal Q p) :
   g_univ h1 h1.1 = id :=
 begin
-  sorry
+  rw g_univ_unique h1 _ id (by refl)
 end
 
 -- A variant of the previous lemma where we say `g q = q` rather than `g = id`
@@ -145,18 +145,35 @@ noncomputable def univ_equiv {X : Type} [s : setoid X] {Q1 Q2 : Type}
 { to_fun := g_univ h1 h2.1,
   inv_fun := g_univ h2 h1.1,
   left_inv := begin
-    sorry
+    apply congr_fun,
+    convert useful h1,
+    apply g_univ_unique,
+    rw function.comp.assoc,
+    rw ← g_univ_spec h1 h2.1,
+    exact g_univ_spec h2 h1.1
   end,
   right_inv := begin
     -- same proof, mutatis mutandis
-    sorry
+    apply congr_fun,
+    convert useful h2,
+    apply g_univ_unique,
+    rw function.comp.assoc,
+    rw ← g_univ_spec h2 h1.1,
+    exact g_univ_spec h1 h2.1
   end }
 
 -- Lean's builtin quotients are universal
 theorem quotient_is_universal {X : Type} [s : setoid X] :
   is_universal (quotient s) quotient.mk :=
 begin
-  sorry
+  split, exact λ_ _, quotient.sound,
+  intros T f h, use quotient.lift f h,
+  split, refl, /-intros k rfl, ext q,
+  apply quotient.induction_on q,
+  intro x, dsimp, rw H-/
+  rintro k rfl, ext q,
+  apply quotient.induction_on q,
+  intro, refl
 end
 
 -- so any universal object is isomorphic to the quotient object.

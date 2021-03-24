@@ -222,18 +222,19 @@ def r_refl : reflexive r :=
 begin
   -- you can start with `unfold reflexive` if you want to see what
   -- you're supposed to be proving here.
-  sorry,
+  exact λ_, rfl
 end
 
 -- hint: `linarith` is good at linear arithmetic. 
 def r_symm : symmetric r :=
 begin
-  sorry
+  exact λ_ _, eq.symm
 end
 
 def r_trans : transitive r :=
 begin
-  sorry
+  intros _ _ _, repeat {rw r_def}, omega
+  -- rw ← add_left_inj (y.1+y.2)],
 end
 
 -- now let's give N2 a setoid structure coming from `r`.
@@ -339,7 +340,7 @@ variable {T : Type}
 def universal1 (g : Z → T) :
   {f : N2 → T // ∀ x y : N2, x ≈ y → f x = f y} :=
 ⟨λ n2, g ⟦n2⟧, begin
-  sorry
+  intros _ _ h, congr' 1, exact quotient.sound h
 end⟩
 
 -- To go the other way, we use a new function called `quotient.lift`.
@@ -372,6 +373,10 @@ end
 -- defined them to be equivalence classes this would be true, but
 -- not by definition. To a mathematician this is not really a big deal,
 -- but it is what it is.
+/- and the definition of `quotient.lift` would need to make use of 
+   `classical.choice` either directly to choose representatives, or
+   otherwise to reify a relation (that satisfies the uniqueness property)
+   to a function.  -/
 
 -- To go the other way, proving universal1 ∘ universal2 = id, the key thing
 -- to know is a function 
@@ -470,7 +475,8 @@ def neg_aux (ab : N2) : Z := ⟦(ab.2, ab.1)⟧
 def neg : Z → Z := quotient.lift neg_aux
 begin
   -- ⊢ ∀ (a b : N2), a ≈ b → neg_aux a = neg_aux b
-  sorry,
+  intros a b h, apply quotient.sound,
+  revert h, repeat {rw equiv_def}, omega
 end
 
 -- `-z` notation
@@ -503,7 +509,8 @@ rfl -- true by def
 
 def add : Z → Z → Z := quotient.lift₂ add_aux 
 begin
-  sorry,
+  intros _ _ _ _ h₁ h₂, apply quotient.sound,
+  revert h₁ h₂, repeat {rw equiv_def}, omega
 end
 
 -- notation for addition
@@ -539,18 +546,28 @@ def add_comm_group : add_comm_group Z :=
     simp,
   end,
   add_zero := begin
-    sorry
+    intro x,
+    apply quotient.induction_on x,
+    rintro ⟨a,b⟩, simp
   end,    
   -- Here there are three variables so it's `quotient.induction_on₃`
   -- Remember the `ring` tactic will prove identities in `ℕ`.
   add_assoc := begin
-    sorry
+    intros a b c,
+    apply quotient.induction_on₃ a b c,
+    rintro ⟨a₁,a₂⟩ ⟨b₁,b₂⟩ ⟨c₁,c₂⟩,
+    dsimp, congr' 2; abel
   end,
   add_left_neg := begin
-    sorry
+    intro a,
+    apply quotient.induction_on a,
+    rintro ⟨a₁,a₂⟩, simp, abel
   end,
   add_comm := begin
-    sorry
+    intros a b,
+    apply quotient.induction_on₂ a b,
+    rintro ⟨a₁,a₂⟩ ⟨b₁,b₂⟩,
+    dsimp, congr' 2; abel
   end,
 }
 
@@ -577,9 +594,12 @@ def mul_aux (ab cd : N2) : N2 :=
 
 -- The key result you have to prove here involves multiplication so is
 -- unfortunately non-linear. However `nlinarith` is OK at non-linear arithmetic...
-def mul : Z → Z → Z := quotient.map₂ mul_aux 
+def mul : Z → Z → Z := quotient.map₂ mul_aux
 begin
-  sorry
+  rintro ⟨a,b⟩ ⟨c,d⟩ h ⟨e,f⟩ ⟨g,i⟩,
+  simp at *, intro, nlinarith,
+  /-revert h, repeat {rw equiv_def}, dsimp,
+  intros h₁ h₂, nlinarith-/
 end
 
 -- notation for multiplication
@@ -603,19 +623,24 @@ def comm_ring : comm_ring Z :=
   end,
   -- etc etc
   one_mul := begin
-    sorry
+    intro a, apply quotient.induction_on a,
+    rintro ⟨a₁,a₂⟩, dsimp, congr' 2; ring
   end,
   mul_one := begin
-    sorry
+    intro a, apply quotient.induction_on a,
+    rintro ⟨a₁,a₂⟩, dsimp, congr' 2; ring
   end,
   left_distrib := begin
-    sorry
+    intros a b c, apply quotient.induction_on₃ a b c,
+    rintro ⟨_,_⟩ ⟨_,_⟩ ⟨_,_⟩, dsimp, congr' 2; ring
   end,
   right_distrib := begin
-    sorry
+    intros a b c, apply quotient.induction_on₃ a b c,
+    rintro ⟨_,_⟩ ⟨_,_⟩ ⟨_,_⟩, dsimp, congr' 2; ring
   end,
   mul_comm := begin
-    sorry
+    intros a b, apply quotient.induction_on₂ a b,
+    rintro ⟨_,_⟩ ⟨_,_⟩, dsimp, congr' 2; ring
   end,
   ..add_comm_group
 }
